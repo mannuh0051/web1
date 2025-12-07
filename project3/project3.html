@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KJSEA Results Portal - Kenya Junior Secondary Education Assessment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c1a2d 0%, #152238 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Loader Container */
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0c1a2d 0%, #152238 100%);
+            z-index: 1000;
+            transition: opacity 0.8s ease-in-out, transform 1s ease-in-out;
+        }
+        
+        /* KJSEA Logo - STABLE (no animation) */
+        .loader-logo-container {
+            display: flex;
+            align-items: center;
+            transform: translateY(0);
+            margin-bottom: 4rem;
+        }
+        
+        .loader-logo {
+            font-size: 5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 2px;
+        }
+        
+        /* Spinner Container - Initially Hidden */
+        .spinner-wrapper {
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out, visibility 0s 0.8s;
+        }
+        
+        .spinner-wrapper.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out, visibility 0s 0s;
+        }
+        
+        /* Spinner - FIXED ANIMATION */
+        .spinner {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .spinner-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-sizing: border-box;
+        }
+        
+        .ring-1 {
+            border: 4px solid transparent;
+            border-top: 4px solid #ff416c;
+            animation: spin1 1.5s linear infinite;
+        }
+        
+        .ring-2 {
+            border: 4px solid transparent;
+            border-right: 4px solid #ff4b2b;
+            animation: spin2 2s linear infinite;
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+        }
+        
+        .ring-3 {
+            border: 4px solid transparent;
+            border-bottom: 4px solid #00d2ff;
+            animation: spin3 1.8s linear infinite;
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+        }
+        
+        .spinner-center {
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            top: 35%;
+            left: 35%;
+            background: rgba(255, 65, 108, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Loading Text */
+        .loading-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #a8b2d1;
+            margin-top: 1.5rem;
+            letter-spacing: 1px;
+        }
+        
+        .loading-dots {
+            display: inline-block;
+            width: 80px;
+            text-align: left;
+        }
+        
+        .dot {
+            opacity: 0;
+            animation: dotAnimation 1.5s infinite;
+        }
+        
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        /* ============ MAIN PAGE STYLES ============ */
+        .main-page {
+            display: none;
+        }
+        
+        /* Header Section */
+        .header {
+            background: linear-gradient(90deg, #1c2b4a 0%, #243b55 50%, #1c2b4a 100%);
+            padding: 1.2rem 2rem;
+            border-bottom: 3px solid #ff4b2b;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        .header-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #ff4b2b, #ff416c);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: #0c1a2d;
+            border: 2px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-text {
+            text-align: left;
+        }
+        
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: white;
+            text-transform: uppercase;
+            margin-bottom: 0.2rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header-subtitle {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #c8d6e5;
+            letter-spacing: 0.5px;
+        }
+        
+        .header-official {
+            font-size: 0.9rem;
+            color: #ff4b2b;
+            font-weight: 500;
+            margin-top: 0.2rem;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        /* Results Button in Header */
+        .header-results-btn {
+            padding: 0.8rem 1.8rem;
+            font-size: 1rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.3);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        
+        .header-results-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 210, 255, 0.4);
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+        }
+        
+        .header-stats {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .header-stat {
+            text-align: center;
+            padding: 0.4rem 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header-stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ff4b2b;
+        }
+        
+        .header-stat-label {
+            font-size: 0.7rem;
+            color: #c8d6e5;
+            margin-top: 0.1rem;
+        }
+        
+        /* Top Announcement Bar */
+        .announcement-bar {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            padding: 0.6rem 2rem;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            font-size: 0.95rem;
+        }
+        
+        .announcement-icon {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Navigation */
+        .navigation {
+            background: rgba(28, 43, 74, 0.9);
+            padding: 0.8rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            list-style: none;
+        }
+        
+        .nav-link {
+            color: #a8b2d1;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(255, 65, 108, 0.2);
+            color: #ff416c;
+        }
+        
+        .quick-actions {
+            display: flex;
+            gap: 0.8rem;
+        }
+        
+        .action-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 75, 43, 0.2);
+            border: 1px solid #ff4b2b;
+            color: #ff6b6b;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 75, 43, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        /* Main Container - MULTIPLE METHODS FOR BACKGROUND VISIBILITY */
+        .main-container {
+            max-width: 1400px;
+            margin: 1.5rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2.5rem;
+            position: relative;
+            min-height: 70vh;
+        }
+        
+        /* METHOD 1: Transparent Borders and Shadows */
+        .main-container::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: url('kcse-2-1.jpg') no-repeat center center;
+            background-size: cover;
+            background-attachment: fixed;
+            opacity: 0.6; /* Increased opacity */
+            z-index: -1;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 0 40px rgba(0, 0, 0, 0.6),
+                inset 0 0 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* METHOD 2: Gradient Overlay for Contrast */
+        .main-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(12, 26, 45, 0.1) 0%,
+                rgba(28, 43, 74, 0.3) 50%,
+                rgba(12, 26, 45, 0.1) 100%
+            );
+            z-index: -1;
+            border-radius: 15px;
+            pointer-events: none;
+        }
+        
+        /* Left and Right Columns */
+        .left-column, .right-column {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Dashboard Cards - METHOD 3: Solid Borders with Transparency */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .dashboard-card {
+            background: rgba(28, 43, 74, 0.6); /* More transparent */
+            border-radius: 12px;
+            padding: 1.2rem;
+            border: 2px solid rgba(255, 255, 255, 0.15); /* Solid border */
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            background: rgba(28, 43, 74, 0.7);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-red { border-top: 4px solid #ff416c; }
+        .card-blue { border-top: 4px solid #00d2ff; }
+        .card-orange { border-top: 4px solid #ff4b2b; }
+        .card-purple { border-top: 4px solid #8a2be2; }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        
+        .card-icon {
+            font-size: 1.3rem;
+            padding: 0.6rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f1f2f6;
+            margin-bottom: 0.3rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .card-value {
+            font-size: 1.7rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.6);
+        }
+        
+        .card-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+        }
+        
+        .trend-up { color: #00d2ff; }
+        .trend-down { color: #ff416c; }
+        
+        /* KJSEA Info Section - METHOD 4: Outline Effect */
+        .info-section {
+            background: rgba(28, 43, 74, 0.6);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Create outline effect */
+        .info-section::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+        
+        .info-section:hover {
+            background: rgba(28, 43, 74, 0.7);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        .section-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #ff4b2b;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
+        }
+        
+        .info-list {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+        
+        .info-item {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-icon {
+            color: #ff416c;
+            font-size: 1.1rem;
+            margin-top: 3px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.5));
+        }
+        
+        .info-content h4 {
+            color: #f1f2f6;
+            font-size: 1.1rem;
+            margin-bottom: 0.2rem;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .info-content p {
+            color: #e8edf7;
+            line-height: 1.5;
+            font-size: 0.9rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Results Dialog */
+        .results-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .results-dialog.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .dialog-content {
+            background: linear-gradient(135deg, #0c1a2d 0%, #152238 100%);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff4b2b;
+            transform: translateY(30px);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        
+        .results-dialog.active .dialog-content {
+            transform: translateY(0);
+        }
+        
+        .dialog-close {
+            position: absolute;
+            top: 1.2rem;
+            right: 1.2rem;
+            background: none;
+            border: none;
+            color: #a8b2d1;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .dialog-close:hover {
+            color: #ff416c;
+        }
+        
+        .dialog-title {
+            font-size: 1.8rem;
+            color: #ff4b2b;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        
+        .dialog-subtitle {
+            color: #a8b2d1;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        
+        .dialog-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        
+        .dialog-input {
+            padding: 1rem 1.2rem;
+            background: rgba(12, 26, 45, 0.8);
+            border: 2px solid #2a3f5f;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .dialog-input:focus {
+            outline: none;
+            border-color: #ff416c;
+            box-shadow: 0 0 0 3px rgba(255, 65, 108, 0.2);
+        }
+        
+        .dialog-button {
+            padding: 1rem;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .dialog-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 210, 255, 0.3);
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+        }
+        
+        /* USSD Code Display */
+        .ussd-container {
+            text-align: center;
+            padding: 1.5rem 0;
+        }
+        
+        .ussd-title {
+            color: #ff4b2b;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .ussd-instruction {
+            color: #a8b2d1;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        
+        .ussd-code-display {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            display: inline-block;
+            border: 2px solid #00d2ff;
+        }
+        
+        .ussd-code-text {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #ff6b6b;
+            letter-spacing: 2px;
+            animation: ussdGlow 2s infinite;
+        }
+        
+        .ussd-dial-button {
+            padding: 1rem 2rem;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        
+        .ussd-dial-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 210, 255, 0.3);
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+        }
+        
+        .ussd-note {
+            background: rgba(255, 75, 43, 0.1);
+            border-left: 4px solid #ff4b2b;
+            padding: 0.9rem;
+            border-radius: 5px;
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+        
+        .ussd-note-text {
+            color: #a8b2d1;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        .student-info-display {
+            background: rgba(28, 43, 74, 0.5);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        
+        .student-info-item {
+            margin-bottom: 0.8rem;
+        }
+        
+        .student-info-label {
+            color: #a8b2d1;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+        
+        .student-info-value {
+            color: #f1f2f6;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        /* Contact Information Box - METHOD 5: Text Background */
+        .contact-box {
+            margin-top: 1.5rem;
+            background: rgba(28, 43, 74, 0.6);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .contact-box:hover {
+            background: rgba(28, 43, 74, 0.7);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes spin1 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes spin2 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes spin3 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes dotAnimation {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes ussdGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 107, 107, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(255, 107, 107, 0.8), 0 0 30px rgba(255, 107, 107, 0.6); }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .header-stats {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .loader-logo {
+                font-size: 3.5rem;
+            }
+            
+            .spinner {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-left {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .header-title {
+                font-size: 1.5rem;
+            }
+            
+            .header-results-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .main-container {
+                padding: 0 1rem;
+            }
+            
+            .dialog-content {
+                padding: 1.5rem;
+                width: 95%;
+            }
+            
+            .ussd-code-text {
+                font-size: 1.8rem;
+            }
+            
+            /* Adjust background for mobile */
+            .main-container::before {
+                opacity: 0.7; /* Even more visible on mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loader (will be hidden after 5 seconds) -->
+    <div class="loader-container" id="loaderContainer">
+        <!-- KJSEA Logo (NO DOT) -->
+        <div class="loader-logo-container">
+            <div class="loader-logo">KJSEA</div>
+        </div>
+        
+        <!-- Spinner (Hidden for first 2 seconds) -->
+        <div class="spinner-wrapper" id="spinnerWrapper">
+            <div class="spinner">
+                <div class="spinner-ring ring-1"></div>
+                <div class="spinner-ring ring-2"></div>
+                <div class="spinner-ring ring-3"></div>
+                <div class="spinner-center">
+                    <i class="fas fa-infinity" style="color: #ff416c; font-size: 1.2rem;"></i>
+                </div>
+            </div>
+            
+            <div class="loading-text">
+                Loading KJSEA System<span class="loading-dots">
+                    <span class="dot">.</span>
+                    <span class="dot">.</span>
+                    <span class="dot">.</span>
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Page Content (hidden initially) -->
+    <div class="main-page" id="mainPage">
+        <!-- Announcement Bar -->
+        <div class="announcement-bar">
+            <i class="fas fa-bullhorn announcement-icon"></i>
+            <span>KJSEA 2024 Term 1 Assessment Results are now AVAILABLE! Click "Check Results" to verify.</span>
+            <i class="fas fa-exclamation-circle announcement-icon"></i>
+        </div>
+        
+        <!-- Header Section with Results Button -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="header-logo">KJ</div>
+                    <div class="header-text">
+                        <h1 class="header-title">NATIONAL EXAMINATIONS</h1>
+                        <p class="header-subtitle">KENYA NATIONAL EXAMINATIONS COUNCIL | MITHANI</p>
+                        <p class="header-official">Kenya Junior Secondary Education Assessment</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-stats">
+                        <div class="header-stat">
+                            <div class="header-stat-value">1.2M</div>
+                            <div class="header-stat-label">JSS Students</div>
+                        </div>
+                        <div class="header-stat">
+                            <div class="header-stat-value">*811*842#</div>
+                            <div class="header-stat-label">USSD Code</div>
+                        </div>
+                    </div>
+                    <button class="header-results-btn" id="headerResultsBtn">
+                        <i class="fas fa-poll"></i> CHECK RESULTS
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-container">
+                <ul class="nav-links">
+                    <li><a href="#" class="nav-link active"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="#" class="nav-link"><i class="fas fa-poll"></i> Assessment Results</a></li>
+                    <li><a href="#" class="nav-link"><i class="fas fa-calendar-alt"></i> Assessment Calendar</a></li>
+                    <li><a href="#" class="nav-link"><i class="fas fa-school"></i> JSS Schools</a></li>
+                    <li><a href="#" class="nav-link"><i class="fas fa-chart-bar"></i> Performance Analytics</a></li>
+                    <li><a href="#" class="nav-link"><i class="fas fa-question-circle"></i> JSS Support</a></li>
+                </ul>
+                <div class="quick-actions">
+                    <button class="action-btn"><i class="fas fa-download"></i> JSS Syllabus</button>
+                    <button class="action-btn"><i class="fas fa-bell"></i> Alerts</button>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Main Content Area WITH MULTIPLE VISIBILITY METHODS -->
+        <main class="main-container">
+            <!-- Left Column: Dashboard & Information -->
+            <div class="left-column">
+                <!-- Dashboard Cards -->
+                <div class="dashboard-cards">
+                    <div class="dashboard-card card-red">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">JSS Enrollment 2024</div>
+                                <div class="card-value">1,247,893</div>
+                            </div>
+                            <div class="card-icon">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                        </div>
+                        <div class="card-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>8.7% increase</span>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card card-blue">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Results Accessed</div>
+                                <div class="card-value">856,423</div>
+                            </div>
+                            <div class="card-icon">
+                                <i class="fas fa-poll"></i>
+                            </div>
+                        </div>
+                        <div class="card-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>42% this month</span>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card card-orange">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">USSD Verification</div>
+                                <div class="card-value">*811*842#</div>
+                            </div>
+                            <div class="card-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                        </div>
+                        <div class="card-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>Active 24/7</span>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card card-purple">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Learning Areas</div>
+                                <div class="card-value">12</div>
+                            </div>
+                            <div class="card-icon">
+                                <i class="fas fa-book"></i>
+                            </div>
+                        </div>
+                        <div class="card-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>3 new areas</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- KJSEA Information Section -->
+                <section class="info-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-info-circle"></i> How to Check Results
+                    </h2>
+                    
+                    <ul class="info-list">
+                        <li class="info-item">
+                            <i class="fas fa-mouse-pointer info-icon"></i>
+                            <div class="info-content">
+                                <h4>Step 1: Click "Check Results"</h4>
+                                <p>Click the blue "Check Results" button in the top right corner of this page.</p>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <i class="fas fa-user-edit info-icon"></i>
+                            <div class="info-content">
+                                <h4>Step 2: Enter Your Details</h4>
+                                <p>Enter your full name and index number in the simple form that appears.</p>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <i class="fas fa-sms info-icon"></i>
+                            <div class="info-content">
+                                <h4>Step 3: Get USSD Code</h4>
+                                <p>You will receive a USSD code (*811*842#) to dial on your mobile phone for verification.</p>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <i class="fas fa-phone info-icon"></i>
+                            <div class="info-content">
+                                <h4>Step 4: Dial & Verify</h4>
+                                <p>Dial *811*842# on your phone to complete verification and access results.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+            
+            <!-- Right Column: Information -->
+            <div class="right-column">
+                <!-- Quick Guide Section -->
+                <section class="info-section" style="border-left: 5px solid #00d2ff;">
+                    <h2 class="section-title" style="color: #00d2ff;">
+                        <i class="fas fa-question-circle"></i> Frequently Asked Questions
+                    </h2>
+                    
+                    <ul class="info-list">
+                        <li class="info-item">
+                            <i class="fas fa-question info-icon"></i>
+                            <div class="info-content">
+                                <h4>What do I need to check my results?</h4>
+                                <p>You only need your full name and index number. The system will guide you through the simple verification process.</p>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <i class="fas fa-mobile-alt info-icon"></i>
+                            <div class="info-content">
+                                <h4>Why do I need to dial *811*842#?</h4>
+                                <p>USSD verification ensures the security of your results and confirms your identity using your mobile phone.</p>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <i class="fas fa-clock info-icon"></i>
+                            <div class="info-content">
+                                <h4>Is the USSD service available 24/7?</h4>
+                                <p>Yes, the USSD verification service (*811*842#) is available 24 hours a day, 7 days a week on all mobile networks.</p>
+                            </div>
+                        </li>
+                        
+                        <li class="info-item">
+                            <i class="fas fa-shield-alt info-icon"></i>
+                            <div class="info-content">
+                                <h4>Is my information secure?</h4>
+                                <p>Yes, your personal information is protected and only used for verification purposes. We comply with all data protection regulations.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
+                
+                <!-- Contact Information -->
+                <div class="contact-box">
+                    <h3 style="color: #ff6b6b; margin-bottom: 1rem; font-size: 1.3rem;">
+                        <i class="fas fa-headset"></i> Need Help?
+                    </h3>
+                    <div style="color: #a8b2d1; line-height: 1.6; font-size: 0.9rem;">
+                        <p style="margin-bottom: 0.8rem;">
+                            <i class="fas fa-phone" style="color: #00d2ff; margin-right: 8px;"></i>
+                            <strong>KJSEA Support:</strong> 071 234 5678
+                        </p>
+                        <p style="margin-bottom: 0.8rem;">
+                            <i class="fas fa-envelope" style="color: #ff4b2b; margin-right: 8px;"></i>
+                            <strong>Email:</strong> support@kjsea.ac.ke
+                        </p>
+                        <p>
+                            <i class="fas fa-clock" style="color: #ff416c; margin-right: 8px;"></i>
+                            <strong>Support Hours:</strong> Monday-Friday, 8:00 AM - 5:00 PM
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2024 Kenya National Examinations Council - KJSEA Portal</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #a8b2d1;">
+                Kenya Junior Secondary Education Assessment | USSD Verification: *811*842#
+            </p>
+            
+            <div class="footer-links">
+                <a href="#" class="footer-link">About KJSEA</a>
+                <a href="#" class="footer-link">Results Guide</a>
+                <a href="#" class="footer-link">Contact Support</a>
+                <a href="#" class="footer-link">Privacy Policy</a>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Results Dialog -->
+    <div class="results-dialog" id="resultsDialog">
+        <div class="dialog-content">
+            <!-- Form Step -->
+            <div id="formStep">
+                <button class="dialog-close" id="dialogClose">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <h2 class="dialog-title">Check Your Results</h2>
+                <p class="dialog-subtitle">Enter your details to proceed with USSD verification</p>
+                
+                <form class="dialog-form" id="resultsForm">
+                    <input type="text" 
+                           class="dialog-input" 
+                           placeholder="Enter Your Full Name"
+                           required
+                           id="studentName">
+                    
+                    <input type="text" 
+                           class="dialog-input" 
+                           placeholder="Enter Your Index Number"
+                           required
+                           id="studentIndex">
+                    
+                    <button type="submit" class="dialog-button">
+                        <i class="fas fa-search"></i> CHECK RESULTS
+                    </button>
+                </form>
+                
+                <div class="ussd-note">
+                    <p class="ussd-note-text">
+                        <i class="fas fa-info-circle" style="margin-right: 5px;"></i>
+                        After verification, you will need to dial *811*842# on your mobile phone for secure access to your results.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- USSD Code Step (same dialog) -->
+            <div id="ussdStep" style="display: none;">
+                <button class="dialog-close" id="ussdStepClose">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <div class="student-info-display">
+                    <div class="student-info-item">
+                        <div class="student-info-label">Student Name</div>
+                        <div class="student-info-value" id="displayName">-</div>
+                    </div>
+                    <div class="student-info-item">
+                        <div class="student-info-label">Index Number</div>
+                        <div class="student-info-value" id="displayIndex">-</div>
+                    </div>
+                </div>
+                
+                <div class="ussd-container">
+                    <h3 class="ussd-title">To Complete the Process</h3>
+                    
+                    <p class="ussd-instruction">
+                        To check your results, dial the USSD code below on your phone:
+                    </p>
+                    
+                    <div class="ussd-code-display">
+                        <div class="ussd-code-text">*811*842#</div>
+                    </div>
+                    
+                    <p class="ussd-instruction" style="font-size: 0.9rem;">
+                        This code will verify your identity and provide access to your KJSEA assessment results.
+                    </p>
+                    
+                    <a href="tel:*811*842#" class="ussd-dial-button">
+                        <i class="fas fa-phone-alt"></i> DIAL *811*842# NOW
+                    </a>
+                </div>
+                
+                <div class="ussd-note">
+                    <p class="ussd-note-text">
+                        <i class="fas fa-exclamation-triangle" style="margin-right: 5px;"></i>
+                        <strong>Important:</strong> 
+                        • Dial the code exactly as shown: *811*842#<br>
+                        • No internet connection required<br>
+                        • Standard network charges may apply<br>
+                        • Code expires in 24 hours
+                    </p>
+                </div>
+                
+                <button class="dialog-button" style="margin-top: 1rem; background: #ff416c;" id="backToFormBtn">
+                    <i class="fas fa-arrow-left"></i> ENTER DIFFERENT DETAILS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loaderContainer = document.getElementById('loaderContainer');
+            const spinnerWrapper = document.getElementById('spinnerWrapper');
+            const mainPage = document.getElementById('mainPage');
+            const headerResultsBtn = document.getElementById('headerResultsBtn');
+            const resultsDialog = document.getElementById('resultsDialog');
+            const dialogClose = document.getElementById('dialogClose');
+            const ussdStepClose = document.getElementById('ussdStepClose');
+            const resultsForm = document.getElementById('resultsForm');
+            const backToFormBtn = document.getElementById('backToFormBtn');
+            
+            // Steps
+            const formStep = document.getElementById('formStep');
+            const ussdStep = document.getElementById('ussdStep');
+            
+            let step = 1;
+            
+            // Show spinner after 2 seconds
+            setTimeout(() => {
+                step = 2;
+                spinnerWrapper.classList.add('active');
+                
+                // After 3 more seconds: Show main page (total 5 seconds)
+                setTimeout(() => {
+                    step = 3;
+                    
+                    // Fade out loader
+                    loaderContainer.style.opacity = '0';
+                    loaderContainer.style.transform = 'translateY(-30px)';
+                    
+                    // Show main page after fade out
+                    setTimeout(() => {
+                        loaderContainer.style.display = 'none';
+                        mainPage.style.display = 'block';
+                        
+                        // Animate dashboard cards
+                        const cards = document.querySelectorAll('.dashboard-card');
+                        cards.forEach((card, index) => {
+                            setTimeout(() => {
+                                card.style.animation = 'fadeInUp 0.5s ease forwards';
+                                card.style.opacity = '0';
+                            }, index * 100);
+                        });
+                    }, 800);
+                }, 3000); // Spinner duration: 3 seconds
+            }, 2000); // KJSEA duration: 2 seconds
+            
+            // Header Results Button - Open Results Dialog
+            headerResultsBtn.addEventListener('click', function() {
+                resultsDialog.classList.add('active');
+                showStep('form');
+            });
+            
+            // Close Results Dialog
+            dialogClose.addEventListener('click', function() {
+                resultsDialog.classList.remove('active');
+            });
+            
+            ussdStepClose.addEventListener('click', function() {
+                resultsDialog.classList.remove('active');
+            });
+            
+            // Close dialog when clicking outside
+            resultsDialog.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    resultsDialog.classList.remove('active');
+                }
+            });
+            
+            // Back to form button
+            backToFormBtn.addEventListener('click', function() {
+                showStep('form');
+            });
+            
+            // Show specific step
+            function showStep(stepName) {
+                // Hide all steps
+                formStep.style.display = 'none';
+                ussdStep.style.display = 'none';
+                
+                // Show selected step
+                if (stepName === 'form') {
+                    formStep.style.display = 'block';
+                    // Reset form
+                    resultsForm.reset();
+                } else if (stepName === 'ussd') {
+                    ussdStep.style.display = 'block';
+                }
+            }
+            
+            // Results Form Submission
+            resultsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('studentName').value;
+                const index = document.getElementById('studentIndex').value;
+                
+                // Validate inputs
+                if (!name || !index) {
+                    alert('Please enter both your full name and index number.');
+                    return;
+                }
+                
+                if (name.trim().length < 3) {
+                    alert('Please enter your full name.');
+                    return;
+                }
+                
+                if (index.trim().length < 5) {
+                    alert('Please enter a valid index number.');
+                    return;
+                }
+                
+                // Show loading state
+                const submitBtn = this.querySelector('.dialog-button');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+                submitBtn.disabled = true;
+                
+                // Simulate verification process
+                setTimeout(() => {
+                    // Update display with user info
+                    document.getElementById('displayName').textContent = name;
+                    document.getElementById('displayIndex').textContent = index;
+                    
+                    // Show USSD step
+                    showStep('ussd');
+                    
+                    // Reset button
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }, 1500);
+            });
+            
+            // Update live announcements
+            function updateAnnouncements() {
+                const announcements = [
+                    "KJSEA 2024 Term 1 Assessment Results are now AVAILABLE! Click 'Check Results' to verify via USSD.",
+                    "Simple 2-step process: Enter name & index → Dial USSD code *811*842#",
+                    "No complex forms! Just name and index number required for USSD verification.",
+                    "USSD verification (*811*842#) available 24/7 on all mobile networks in Kenya."
+                ];
+                
+                const announcementBar = document.querySelector('.announcement-bar span');
+                const randomIndex = Math.floor(Math.random() * announcements.length);
+                announcementBar.textContent = announcements[randomIndex];
+            }
+            
+            // Update every 15 seconds
+            setInterval(updateAnnouncements, 15000);
+            updateAnnouncements(); // Initial call
+            
+            // Add pulse animation to header results button
+            setInterval(() => {
+                headerResultsBtn.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    headerResultsBtn.style.transform = 'scale(1)';
+                }, 500);
+            }, 3000);
+            
+            // Simulate USSD code dialing
+            document.querySelector('.ussd-dial-button').addEventListener('click', function(e) {
+                // This will open the phone dialer with the USSD code
+                console.log('Opening dialer with USSD code: *811*842#');
+                
+                // Show a confirmation message after a short delay
+                setTimeout(() => {
+                    alert('Phone dialer opened. Please press CALL to dial *811*842#\n\nAfter dialing, follow the voice prompts to complete verification.');
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>
